@@ -5,7 +5,7 @@ exports.handler = async (event) => {
   try {
     const form = new FormData();
     const buffer = Buffer.from(event.body, 'base64');
-    form.append('image', buffer, 'image.jpg');
+    form.append('image', buffer, { filename: 'image.jpg' });
 
     const response = await fetch('http://planet-accessible-dibble.glitch.me/api/enhancer', {
       method: 'POST',
