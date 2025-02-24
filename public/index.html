@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Processor</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Image Processor</h1>
+        
+        <div class="upload-section">
+            <input type="file" id="imageInput" accept="image/*">
+            <div class="preview-container">
+                <img id="imagePreview" src="#" alt="Preview">
+            </div>
+        </div>
+
+        <div class="controls">
+            <button onclick="enhanceImage()">Enhance Image</button>
+            <button onclick="removeBackground()">Remove Background</button>
+        </div>
+
+        <div class="result-container">
+            <div class="result-box">
+                <h3>Enhanced Image</h3>
+                <img id="enhancedResult" alt="Enhanced result">
+            </div>
+            <div class="result-box">
+                <h3>Background Removed</h3>
+                <img id="bgRemovedResult" alt="BG Removed result">
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
