@@ -106,38 +106,40 @@ async function enhanceImage() {
             document.getElementById('originalImage').src = imageUrl;
         }
 
-        // Make the enhance request
-        const response = await fetch(`${ENHANCE_API_URL}?url=${encodeURIComponent(imageUrlToProcess)}`, {
-            method: 'GET',
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            },
-        });
-
-        if (!response.ok) {
-            throw new Error('Enhancement request failed');
-        }
-
+        // Using cors-anywhere proxy
+        const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+        const apiUrl = `${ENHANCE_API_URL}?url=${encodeURIComponent(imageUrlToProcess)}`;
+        
         let retries = 0;
-        const maxRetries = 15; // 30 seconds total
+        const maxRetries = 15;
         
         while (retries < maxRetries) {
-            const checkResponse = await fetch(`${ENHANCE_API_URL}?url=${encodeURIComponent(imageUrlToProcess)}`);
-            const data = await checkResponse.json();
-            
-            if (data.status === "success" && data.image) {
-                document.getElementById('processedImage').src = data.image;
-                showDownloadButton(data.image, 'enhanced');
-                hideLoading();
-                return;
+            try {
+                const response = await fetch(proxyUrl + apiUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Origin': window.location.origin,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                
+                if (!response.ok) throw new Error('Network response was not ok');
+                
+                const data = await response.json();
+                
+                if (data.status === "success" && data.image) {
+                    document.getElementById('processedImage').src = data.image;
+                    showDownloadButton(data.image, 'enhanced');
+                    hideLoading();
+                    return;
+                }
+            } catch (error) {
+                console.log('Retry attempt:', retries + 1, error);
             }
             
-            // Wait 2 seconds before next retry
             await new Promise(resolve => setTimeout(resolve, 2000));
             retries++;
             
-            // Update loading message with progress
             const loading = document.getElementById('loading');
             loading.querySelector('span').textContent = 
                 `Processing your image... Please wait (${retries}/${maxRetries})`;
