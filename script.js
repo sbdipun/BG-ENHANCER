@@ -1,6 +1,6 @@
 const API_TOKEN = "c818f0e17c8e4b2597a5db5b2a5cf735";
 const BGR_API_URL = "https://engine.prod.bria-api.com/v1/background/remove";
-const ENHANCE_API_URL = "https://planet-accessible-dibble.glitch.me/api/enhance";
+const ENHANCE_API_URL = "https://planet-accessible-dibble.glitch.me/api/enhancer";
 const IMGBB_API_KEY = "384b8ef7f634a0702aaa7180910f1826"; // Get from https://api.imgbb.com/
 
 async function uploadToHost(file) {
@@ -94,7 +94,6 @@ async function enhanceImage() {
         let imageUrlToProcess;
         
         if (file) {
-            // Upload to ImgBB first
             try {
                 imageUrlToProcess = await uploadToHost(file);
                 document.getElementById('originalImage').src = URL.createObjectURL(file);
@@ -106,46 +105,67 @@ async function enhanceImage() {
             document.getElementById('originalImage').src = imageUrl;
         }
 
-        // Using cors-anywhere proxy
-        const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
-        const apiUrl = `${ENHANCE_API_URL}?url=${encodeURIComponent(imageUrlToProcess)}`;
-        
-        let retries = 0;
-        const maxRetries = 15;
-        
-        while (retries < maxRetries) {
-            try {
-                const response = await fetch(proxyUrl + apiUrl, {
-                    method: 'GET',
+        // Initial request to start processing
+        const loading = document.getElementById('loading');
+        loading.querySelector('span').textContent = 'Starting image enhancement...';
+
+        // Try different approaches to handle the API
+        const approaches = [
+            // Direct approach
+            async () => {
+                const response = await fetch(`${ENHANCE_API_URL}?url=${encodeURIComponent(imageUrlToProcess)}`);
+                return response.json();
+            },
+            // With headers
+            async () => {
+                const response = await fetch(`${ENHANCE_API_URL}?url=${encodeURIComponent(imageUrlToProcess)}`, {
                     headers: {
-                        'Origin': window.location.origin,
-                        'X-Requested-With': 'XMLHttpRequest'
+                        'Accept': 'application/json',
+                        'Cache-Control': 'no-cache'
                     }
                 });
-                
-                if (!response.ok) throw new Error('Network response was not ok');
-                
-                const data = await response.json();
-                
-                if (data.status === "success" && data.image) {
-                    document.getElementById('processedImage').src = data.image;
-                    showDownloadButton(data.image, 'enhanced');
-                    hideLoading();
-                    return;
-                }
-            } catch (error) {
-                console.log('Retry attempt:', retries + 1, error);
+                return response.json();
+            },
+            // Through proxy
+            async () => {
+                const proxyUrl = 'https://api.allorigins.win/raw?url=';
+                const response = await fetch(proxyUrl + encodeURIComponent(`${ENHANCE_API_URL}?url=${encodeURIComponent(imageUrlToProcess)}`));
+                return response.json();
             }
-            
+        ];
+
+        let retries = 0;
+        const maxRetries = 30; // Increase max retries
+        let lastError = null;
+
+        while (retries < maxRetries) {
+            loading.querySelector('span').textContent = 
+                `Processing your image... Attempt ${retries + 1}/${maxRetries}`;
+
+            // Try each approach
+            for (const approach of approaches) {
+                try {
+                    const data = await approach();
+                    
+                    if (data.status === "success" && data.image) {
+                        document.getElementById('processedImage').src = data.image;
+                        showDownloadButton(data.image, 'enhanced');
+                        hideLoading();
+                        return;
+                    }
+                } catch (error) {
+                    lastError = error;
+                    console.log('Approach failed:', error);
+                    continue; // Try next approach
+                }
+            }
+
+            // Wait between retry cycles
             await new Promise(resolve => setTimeout(resolve, 2000));
             retries++;
-            
-            const loading = document.getElementById('loading');
-            loading.querySelector('span').textContent = 
-                `Processing your image... Please wait (${retries}/${maxRetries})`;
         }
         
-        throw new Error('Enhancement process timed out');
+        throw new Error(lastError?.message || 'Enhancement process timed out');
     } catch (error) {
         console.error('Error:', error);
         alert('Error processing image: ' + error.message);
