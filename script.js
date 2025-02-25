@@ -1,6 +1,6 @@
 const API_TOKEN = "c818f0e17c8e4b2597a5db5b2a5cf735";
 const BGR_API_URL = "https://engine.prod.bria-api.com/v1/background/remove";
-const ENHANCE_API_URL = "https://planet-accessible-dibble.glitch.me/api/enhancer";
+const ENHANCE_API_URL = "https://planet-accessible-dibble.glitch.me/api/enhance";
 const IMGBB_API_KEY = "384b8ef7f634a0702aaa7180910f1826"; // Get from https://api.imgbb.com/
 
 async function uploadToHost(file) {
@@ -91,45 +91,59 @@ async function enhanceImage() {
 
     showLoading();
     try {
-        const imageUrlToProcess = file ? await processImage(file) : imageUrl;
-        document.getElementById('originalImage').src = file ? URL.createObjectURL(file) : imageUrl;
-
-        // First request to start processing
-        const initialResponse = await fetch(`${ENHANCE_API_URL}?url=${encodeURIComponent(imageUrlToProcess)}`);
+        let imageUrlToProcess;
         
-        if (!initialResponse.ok) {
-            throw new Error('Failed to start enhancement process');
-        }
-
-        // Retry function to check processing status
-        const checkResult = async (retries = 10, delay = 2000) => {
-            for (let i = 0; i < retries; i++) {
-                try {
-                    const response = await fetch(`${ENHANCE_API_URL}?url=${encodeURIComponent(imageUrlToProcess)}`);
-                    const data = await response.json();
-                    
-                    if (data.status === "success" && data.image) {
-                        return data;
-                    }
-                    
-                    // Wait before next retry
-                    await new Promise(resolve => setTimeout(resolve, delay));
-                } catch (error) {
-                    console.log('Retrying...', error);
-                }
+        if (file) {
+            // Upload to ImgBB first
+            try {
+                imageUrlToProcess = await uploadToHost(file);
+                document.getElementById('originalImage').src = URL.createObjectURL(file);
+            } catch (error) {
+                throw new Error('Failed to upload image');
             }
-            throw new Error('Enhancement timed out');
-        };
-
-        // Wait for the result
-        const data = await checkResult();
-        
-        if (data.status === "success") {
-            document.getElementById('processedImage').src = data.image;
-            showDownloadButton(data.image, 'enhanced');
         } else {
-            throw new Error('Enhancement failed');
+            imageUrlToProcess = imageUrl;
+            document.getElementById('originalImage').src = imageUrl;
         }
+
+        // Make the enhance request
+        const response = await fetch(`${ENHANCE_API_URL}?url=${encodeURIComponent(imageUrlToProcess)}`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error('Enhancement request failed');
+        }
+
+        let retries = 0;
+        const maxRetries = 15; // 30 seconds total
+        
+        while (retries < maxRetries) {
+            const checkResponse = await fetch(`${ENHANCE_API_URL}?url=${encodeURIComponent(imageUrlToProcess)}`);
+            const data = await checkResponse.json();
+            
+            if (data.status === "success" && data.image) {
+                document.getElementById('processedImage').src = data.image;
+                showDownloadButton(data.image, 'enhanced');
+                hideLoading();
+                return;
+            }
+            
+            // Wait 2 seconds before next retry
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            retries++;
+            
+            // Update loading message with progress
+            const loading = document.getElementById('loading');
+            loading.querySelector('span').textContent = 
+                `Processing your image... Please wait (${retries}/${maxRetries})`;
+        }
+        
+        throw new Error('Enhancement process timed out');
     } catch (error) {
         console.error('Error:', error);
         alert('Error processing image: ' + error.message);
