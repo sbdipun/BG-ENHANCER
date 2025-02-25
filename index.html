@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Enhancement & Background Removal</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Image Enhancement & Background Removal</h1>
+        
+        <div class="upload-section">
+            <div class="input-group">
+                <input type="file" id="imageInput" accept="image/*" onchange="handleImageUpload(event)">
+                <span class="or-divider">OR</span>
+                <input type="text" id="imageUrl" placeholder="Enter image URL">
+            </div>
+            <div class="preview">
+                <img id="imagePreview" class="hidden" alt="Upload preview">
+            </div>
+            <div class="buttons">
+                <button onclick="enhanceImage()">Enhance Image</button>
+                <button onclick="removeBackground()">Remove Background</button>
+            </div>
+        </div>
+
+        <div class="results-section">
+            <div class="result-container">
+                <h3>Original Image</h3>
+                <img id="originalImage" src="" alt="Original image will appear here">
+            </div>
+            <div class="result-container">
+                <h3>Processed Image</h3>
+                <img id="processedImage" src="" alt="Processed image will appear here">
+            </div>
+        </div>
+
+        <div id="loading" class="loading hidden">Processing...</div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html> 
