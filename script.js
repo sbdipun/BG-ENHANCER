@@ -90,15 +90,6 @@ function updateProgress(percent, message) {
     }
 }
 
-// Add this helper function
-function createLoadingPlaceholder() {
-    return `
-        <div class="loading-placeholder">
-            <div class="loading-shimmer"></div>
-        </div>
-    `;
-}
-
 async function enhanceImage() {
     const imageUrl = document.getElementById('imageUrl').value;
     const fileInput = document.getElementById('imageInput');
@@ -111,10 +102,6 @@ async function enhanceImage() {
 
     showLoading();
     try {
-        // Show loading placeholder immediately
-        document.getElementById('processedImage').style.display = 'none';
-        document.querySelector('.image-wrapper').insertAdjacentHTML('beforeend', createLoadingPlaceholder());
-
         let imageUrlToProcess;
         
         if (file) {
@@ -171,21 +158,10 @@ async function enhanceImage() {
                     const data = await approach();
                     
                     if (data.status === "success" && data.image) {
-                        // Preload the image
-                        const img = new Image();
-                        img.onload = () => {
-                            // Remove placeholder and show image
-                            const placeholder = document.querySelector('.loading-placeholder');
-                            if (placeholder) placeholder.remove();
-                            
-                            const processedImg = document.getElementById('processedImage');
-                            processedImg.src = data.image;
-                            processedImg.style.display = 'block';
-                            showDownloadButton(data.image, 'enhanced');
-                        };
-                        img.src = data.image;
                         updateProgress(100, 'Enhancement complete!');
-                        setTimeout(hideLoading, 500);
+                        document.getElementById('processedImage').src = data.image;
+                        showDownloadButton(data.image, 'enhanced');
+                        setTimeout(hideLoading, 500); // Show 100% briefly
                         return;
                     }
                 } catch (error) {
@@ -222,10 +198,6 @@ async function removeBackground() {
 
     showLoading();
     try {
-        // Show loading placeholder immediately
-        document.getElementById('processedImage').style.display = 'none';
-        document.querySelector('.image-wrapper').insertAdjacentHTML('beforeend', createLoadingPlaceholder());
-
         let imageUrlToProcess;
         
         if (file) {
@@ -261,20 +233,9 @@ async function removeBackground() {
         const data = await response.json();
         
         if (data.result_url) {
-            // Preload the image
-            const img = new Image();
-            img.onload = () => {
-                // Remove placeholder and show image
-                const placeholder = document.querySelector('.loading-placeholder');
-                if (placeholder) placeholder.remove();
-                
-                const processedImg = document.getElementById('processedImage');
-                processedImg.src = data.result_url;
-                processedImg.style.display = 'block';
-                showDownloadButton(data.result_url, 'nobg');
-            };
-            img.src = data.result_url;
             updateProgress(100, 'Background removed successfully!');
+            document.getElementById('processedImage').src = data.result_url;
+            showDownloadButton(data.result_url, 'nobg');
             setTimeout(hideLoading, 500);
         } else {
             throw new Error('Failed to remove background');
@@ -298,37 +259,29 @@ function showDownloadButton(imageUrl, type) {
         existingBtn.remove();
     }
 
-    // Start downloading the image immediately
-    fetch(imageUrl)
-        .then(response => response.blob())
-        .then(blob => {
-            const downloadBtn = document.createElement('button');
-            downloadBtn.className = 'download-btn';
-            downloadBtn.innerHTML = '<i class="fas fa-download"></i> Download Image';
-            
-            // Create object URL immediately
+    const downloadBtn = document.createElement('button');
+    downloadBtn.className = 'download-btn';
+    downloadBtn.innerHTML = '<i class="fas fa-download"></i> Download Image';
+    
+    downloadBtn.onclick = async () => {
+        try {
+            const response = await fetch(imageUrl);
+            const blob = await response.blob();
             const downloadUrl = window.URL.createObjectURL(blob);
-            
-            downloadBtn.onclick = () => {
-                const a = document.createElement('a');
-                a.href = downloadUrl;
-                a.download = `processed_image_${type}_${Date.now()}.png`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-            };
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = `processed_image_${type}_${Date.now()}.png`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(downloadUrl);
+        } catch (error) {
+            console.error('Download error:', error);
+            alert('Failed to download image');
+        }
+    };
 
-            container.appendChild(downloadBtn);
-        })
-        .catch(error => {
-            console.error('Download preparation error:', error);
-            // Still show download button with direct URL as fallback
-            const downloadBtn = document.createElement('button');
-            downloadBtn.className = 'download-btn';
-            downloadBtn.innerHTML = '<i class="fas fa-download"></i> Download Image';
-            downloadBtn.onclick = () => window.open(imageUrl, '_blank');
-            container.appendChild(downloadBtn);
-        });
+    container.appendChild(downloadBtn);
 }
 
 function showLoading() {
