@@ -79,6 +79,17 @@ async function processImage(file) {
     });
 }
 
+// Add this function to update progress
+function updateProgress(percent, message) {
+    const progressFill = document.querySelector('.progress-fill');
+    const progressText = document.querySelector('.progress-text');
+    
+    progressFill.style.width = `${percent}%`;
+    if (message) {
+        progressText.textContent = message;
+    }
+}
+
 async function enhanceImage() {
     const imageUrl = document.getElementById('imageUrl').value;
     const fileInput = document.getElementById('imageInput');
@@ -95,6 +106,7 @@ async function enhanceImage() {
         
         if (file) {
             try {
+                updateProgress(10, 'Uploading image...');
                 imageUrlToProcess = await uploadToHost(file);
                 document.getElementById('originalImage').src = URL.createObjectURL(file);
             } catch (error) {
@@ -105,11 +117,8 @@ async function enhanceImage() {
             document.getElementById('originalImage').src = imageUrl;
         }
 
-        // Initial request to start processing
-        const loading = document.getElementById('loading');
-        loading.querySelector('span').textContent = 'Starting image enhancement...';
+        updateProgress(20, 'Starting enhancement process...');
 
-        // Try different approaches to handle the API
         const approaches = [
             // Direct approach
             async () => {
@@ -135,12 +144,13 @@ async function enhanceImage() {
         ];
 
         let retries = 0;
-        const maxRetries = 30; // Increase max retries
+        const maxRetries = 30;
         let lastError = null;
 
         while (retries < maxRetries) {
-            loading.querySelector('span').textContent = 
-                `Processing your image... Attempt ${retries + 1}/${maxRetries}`;
+            // Calculate progress percentage (20% to 90%)
+            const progressPercent = 20 + (retries / maxRetries * 70);
+            updateProgress(progressPercent, 'Enhancing image...');
 
             // Try each approach
             for (const approach of approaches) {
@@ -148,19 +158,19 @@ async function enhanceImage() {
                     const data = await approach();
                     
                     if (data.status === "success" && data.image) {
+                        updateProgress(100, 'Enhancement complete!');
                         document.getElementById('processedImage').src = data.image;
                         showDownloadButton(data.image, 'enhanced');
-                        hideLoading();
+                        setTimeout(hideLoading, 500); // Show 100% briefly
                         return;
                     }
                 } catch (error) {
                     lastError = error;
                     console.log('Approach failed:', error);
-                    continue; // Try next approach
+                    continue;
                 }
             }
 
-            // Wait between retry cycles
             await new Promise(resolve => setTimeout(resolve, 2000));
             retries++;
         }
@@ -168,9 +178,12 @@ async function enhanceImage() {
         throw new Error(lastError?.message || 'Enhancement process timed out');
     } catch (error) {
         console.error('Error:', error);
-        alert('Error processing image: ' + error.message);
+        updateProgress(100, `Error: ${error.message}`);
+        setTimeout(() => {
+            alert('Error processing image: ' + error.message);
+            hideLoading();
+        }, 500);
     }
-    hideLoading();
 }
 
 async function removeBackground() {
@@ -188,19 +201,19 @@ async function removeBackground() {
         let imageUrlToProcess;
         
         if (file) {
+            updateProgress(10, 'Uploading image...');
             try {
-                // First try uploading to image host
                 imageUrlToProcess = await uploadToHost(file);
+                document.getElementById('originalImage').src = URL.createObjectURL(file);
             } catch (error) {
-                // If upload fails, use base64
-                console.log('Falling back to base64');
-                imageUrlToProcess = await getImageUrl(file);
+                throw new Error('Failed to upload image');
             }
-            document.getElementById('originalImage').src = URL.createObjectURL(file);
         } else {
             imageUrlToProcess = imageUrl;
             document.getElementById('originalImage').src = imageUrl;
         }
+
+        updateProgress(30, 'Removing background...');
 
         const formData = {
             image_url: imageUrlToProcess
@@ -215,19 +228,26 @@ async function removeBackground() {
             body: new URLSearchParams(formData).toString()
         });
 
+        updateProgress(70, 'Processing result...');
+
         const data = await response.json();
         
         if (data.result_url) {
+            updateProgress(100, 'Background removed successfully!');
             document.getElementById('processedImage').src = data.result_url;
             showDownloadButton(data.result_url, 'nobg');
+            setTimeout(hideLoading, 500);
         } else {
-            alert('Failed to remove background');
+            throw new Error('Failed to remove background');
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('Error processing image: ' + error.message);
+        updateProgress(100, `Error: ${error.message}`);
+        setTimeout(() => {
+            alert('Error processing image: ' + error.message);
+            hideLoading();
+        }, 500);
     }
-    hideLoading();
 }
 
 function showDownloadButton(imageUrl, type) {
@@ -267,7 +287,7 @@ function showDownloadButton(imageUrl, type) {
 function showLoading() {
     const loading = document.getElementById('loading');
     loading.classList.remove('hidden');
-    loading.querySelector('span').textContent = 'Processing your image... This may take up to 20 seconds';
+    updateProgress(0, 'Starting process...');
 }
 
 function hideLoading() {
