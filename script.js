@@ -1,6 +1,29 @@
 const API_TOKEN = "c818f0e17c8e4b2597a5db5b2a5cf735";
 const BGR_API_URL = "https://engine.prod.bria-api.com/v1/background/remove";
 const ENHANCE_API_URL = "https://planet-accessible-dibble.glitch.me/api/enhancer";
+const IMAGE_HOST_URL = "https://envs.sh";
+
+async function uploadToHost(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        const response = await fetch(IMAGE_HOST_URL, {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (!response.ok) {
+            throw new Error('Upload failed');
+        }
+        
+        const imageUrl = await response.text();
+        return imageUrl.trim(); // Remove any whitespace
+    } catch (error) {
+        console.error('Upload error:', error);
+        throw new Error('Failed to upload image');
+    }
+}
 
 function handleImageUpload(event) {
     const file = event.target.files[0];
@@ -47,10 +70,9 @@ async function enhanceImage() {
         let imageUrlToProcess;
         
         if (file) {
-            // Convert file to base64
-            imageUrlToProcess = await getBase64(file);
-            // Set original image
-            document.getElementById('originalImage').src = imageUrlToProcess;
+            // Upload file to get URL
+            imageUrlToProcess = await uploadToHost(file);
+            document.getElementById('originalImage').src = URL.createObjectURL(file);
         } else {
             imageUrlToProcess = imageUrl;
             document.getElementById('originalImage').src = imageUrl;
@@ -61,6 +83,7 @@ async function enhanceImage() {
         
         if (data.status === "success") {
             document.getElementById('processedImage').src = data.image;
+            showDownloadButton(data.image, 'enhanced');
         } else {
             alert('Failed to enhance image');
         }
@@ -83,50 +106,37 @@ async function removeBackground() {
 
     showLoading();
     try {
+        let imageUrlToProcess;
+        
         if (file) {
-            // For file upload
-            const formData = new FormData();
-            formData.append('image', file);
-
-            const response = await fetch(BGR_API_URL, {
-                method: 'POST',
-                headers: {
-                    'api_token': API_TOKEN
-                },
-                body: formData
-            });
-
-            const data = await response.json();
-            
-            if (data.result_url) {
-                document.getElementById('originalImage').src = URL.createObjectURL(file);
-                document.getElementById('processedImage').src = data.result_url;
-            } else {
-                alert('Failed to remove background');
-            }
+            // Upload file to get URL
+            imageUrlToProcess = await uploadToHost(file);
+            document.getElementById('originalImage').src = URL.createObjectURL(file);
         } else {
-            // For image URL
-            const formData = {
-                image_url: imageUrl
-            };
+            imageUrlToProcess = imageUrl;
+            document.getElementById('originalImage').src = imageUrl;
+        }
 
-            const response = await fetch(BGR_API_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'api_token': API_TOKEN
-                },
-                body: new URLSearchParams(formData).toString()
-            });
+        const formData = {
+            image_url: imageUrlToProcess
+        };
 
-            const data = await response.json();
-            
-            if (data.result_url) {
-                document.getElementById('originalImage').src = imageUrl;
-                document.getElementById('processedImage').src = data.result_url;
-            } else {
-                alert('Failed to remove background');
-            }
+        const response = await fetch(BGR_API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'api_token': API_TOKEN
+            },
+            body: new URLSearchParams(formData).toString()
+        });
+
+        const data = await response.json();
+        
+        if (data.result_url) {
+            document.getElementById('processedImage').src = data.result_url;
+            showDownloadButton(data.result_url, 'nobg');
+        } else {
+            alert('Failed to remove background');
         }
     } catch (error) {
         console.error('Error:', error);
@@ -135,14 +145,38 @@ async function removeBackground() {
     hideLoading();
 }
 
-// Helper function to convert File to base64
-function getBase64(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = error => reject(error);
-    });
+function showDownloadButton(imageUrl, type) {
+    const container = document.querySelector('.result-container:last-child');
+    
+    // Remove existing download button if any
+    const existingBtn = container.querySelector('.download-btn');
+    if (existingBtn) {
+        existingBtn.remove();
+    }
+
+    const downloadBtn = document.createElement('button');
+    downloadBtn.className = 'download-btn';
+    downloadBtn.innerHTML = '<i class="fas fa-download"></i> Download Image';
+    
+    downloadBtn.onclick = async () => {
+        try {
+            const response = await fetch(imageUrl);
+            const blob = await response.blob();
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = `processed_image_${type}_${Date.now()}.png`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(downloadUrl);
+        } catch (error) {
+            console.error('Download error:', error);
+            alert('Failed to download image');
+        }
+    };
+
+    container.appendChild(downloadBtn);
 }
 
 function showLoading() {
