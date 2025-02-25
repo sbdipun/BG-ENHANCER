@@ -5,6 +5,18 @@ const ENHANCE_API_URL = "https://planet-accessible-dibble.glitch.me/api/enhancer
 function handleImageUpload(event) {
     const file = event.target.files[0];
     if (file) {
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+            alert('Please upload an image file');
+            return;
+        }
+        
+        // Validate file size (e.g., max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            alert('Please upload an image smaller than 5MB');
+            return;
+        }
+
         // Clear URL input
         document.getElementById('imageUrl').value = '';
         
@@ -71,37 +83,50 @@ async function removeBackground() {
 
     showLoading();
     try {
-        let imageUrlToProcess;
-        
         if (file) {
-            // Convert file to base64
-            imageUrlToProcess = await getBase64(file);
-            // Set original image
-            document.getElementById('originalImage').src = imageUrlToProcess;
+            // For file upload
+            const formData = new FormData();
+            formData.append('image', file);
+
+            const response = await fetch(BGR_API_URL, {
+                method: 'POST',
+                headers: {
+                    'api_token': API_TOKEN
+                },
+                body: formData
+            });
+
+            const data = await response.json();
+            
+            if (data.result_url) {
+                document.getElementById('originalImage').src = URL.createObjectURL(file);
+                document.getElementById('processedImage').src = data.result_url;
+            } else {
+                alert('Failed to remove background');
+            }
         } else {
-            imageUrlToProcess = imageUrl;
-            document.getElementById('originalImage').src = imageUrl;
-        }
+            // For image URL
+            const formData = {
+                image_url: imageUrl
+            };
 
-        const formData = {
-            image_url: imageUrlToProcess
-        };
+            const response = await fetch(BGR_API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'api_token': API_TOKEN
+                },
+                body: new URLSearchParams(formData).toString()
+            });
 
-        const response = await fetch(BGR_API_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'api_token': API_TOKEN
-            },
-            body: new URLSearchParams(formData).toString()
-        });
-
-        const data = await response.json();
-        
-        if (data.result_url) {
-            document.getElementById('processedImage').src = data.result_url;
-        } else {
-            alert('Failed to remove background');
+            const data = await response.json();
+            
+            if (data.result_url) {
+                document.getElementById('originalImage').src = imageUrl;
+                document.getElementById('processedImage').src = data.result_url;
+            } else {
+                alert('Failed to remove background');
+            }
         }
     } catch (error) {
         console.error('Error:', error);
