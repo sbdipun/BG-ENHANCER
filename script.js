@@ -1,14 +1,14 @@
 const API_TOKEN = "c818f0e17c8e4b2597a5db5b2a5cf735";
 const BGR_API_URL = "https://engine.prod.bria-api.com/v1/background/remove";
 const ENHANCE_API_URL = "https://planet-accessible-dibble.glitch.me/api/enhancer";
-const IMAGE_HOST_URL = "https://envs.sh";
+const IMGBB_API_KEY = "384b8ef7f634a0702aaa7180910f1826"; // Get from https://api.imgbb.com/
 
 async function uploadToHost(file) {
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('image', file);
 
     try {
-        const response = await fetch(IMAGE_HOST_URL, {
+        const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
             method: 'POST',
             body: formData
         });
@@ -17,12 +17,26 @@ async function uploadToHost(file) {
             throw new Error('Upload failed');
         }
         
-        const imageUrl = await response.text();
-        return imageUrl.trim(); // Remove any whitespace
+        const data = await response.json();
+        if (data.data?.url) {
+            return data.data.url;
+        } else {
+            throw new Error('Invalid response from image host');
+        }
     } catch (error) {
         console.error('Upload error:', error);
         throw new Error('Failed to upload image');
     }
+}
+
+// Alternative function using base64 if image hosting fails
+async function getImageUrl(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = error => reject(error);
+        reader.readAsDataURL(file);
+    });
 }
 
 function handleImageUpload(event) {
@@ -55,6 +69,16 @@ function handleImageUpload(event) {
     }
 }
 
+// Alternative simpler version using only base64
+async function processImage(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = error => reject(error);
+        reader.readAsDataURL(file);
+    });
+}
+
 async function enhanceImage() {
     const imageUrl = document.getElementById('imageUrl').value;
     const fileInput = document.getElementById('imageInput');
@@ -67,16 +91,8 @@ async function enhanceImage() {
 
     showLoading();
     try {
-        let imageUrlToProcess;
-        
-        if (file) {
-            // Upload file to get URL
-            imageUrlToProcess = await uploadToHost(file);
-            document.getElementById('originalImage').src = URL.createObjectURL(file);
-        } else {
-            imageUrlToProcess = imageUrl;
-            document.getElementById('originalImage').src = imageUrl;
-        }
+        const imageUrlToProcess = file ? await processImage(file) : imageUrl;
+        document.getElementById('originalImage').src = file ? URL.createObjectURL(file) : imageUrl;
 
         const response = await fetch(`${ENHANCE_API_URL}?url=${encodeURIComponent(imageUrlToProcess)}`);
         const data = await response.json();
@@ -85,11 +101,11 @@ async function enhanceImage() {
             document.getElementById('processedImage').src = data.image;
             showDownloadButton(data.image, 'enhanced');
         } else {
-            alert('Failed to enhance image');
+            throw new Error('Enhancement failed');
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('Error processing image');
+        alert('Error processing image: ' + error.message);
     }
     hideLoading();
 }
@@ -109,8 +125,14 @@ async function removeBackground() {
         let imageUrlToProcess;
         
         if (file) {
-            // Upload file to get URL
-            imageUrlToProcess = await uploadToHost(file);
+            try {
+                // First try uploading to image host
+                imageUrlToProcess = await uploadToHost(file);
+            } catch (error) {
+                // If upload fails, use base64
+                console.log('Falling back to base64');
+                imageUrlToProcess = await getImageUrl(file);
+            }
             document.getElementById('originalImage').src = URL.createObjectURL(file);
         } else {
             imageUrlToProcess = imageUrl;
@@ -140,7 +162,7 @@ async function removeBackground() {
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('Error processing image');
+        alert('Error processing image: ' + error.message);
     }
     hideLoading();
 }
