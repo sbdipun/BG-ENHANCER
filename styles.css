@@ -224,33 +224,39 @@ button:hover {
     bottom: 0;
     background: rgba(0, 0, 0, 0.8);
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    color: white;
-    gap: 1rem;
     z-index: 1000;
-    text-align: center;
+}
+
+.progress-container {
+    background: white;
     padding: 2rem;
+    border-radius: 15px;
+    width: 90%;
+    max-width: 400px;
+    text-align: center;
 }
 
-.loading span {
-    font-size: 1.2rem;
-    max-width: 300px;
+.progress-bar {
+    background: #f0f0f0;
+    height: 10px;
+    border-radius: 5px;
+    margin: 1rem 0;
+    overflow: hidden;
 }
 
-.spinner {
-    width: 60px;
-    height: 60px;
-    border: 5px solid #f3f3f3;
-    border-top: 5px solid #6c5ce7;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
+.progress-fill {
+    height: 100%;
+    width: 0;
+    background: linear-gradient(135deg, #6c5ce7, #a363d9);
+    transition: width 0.3s ease;
 }
 
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+.progress-text {
+    color: #2d3436;
+    font-size: 1.1rem;
+    font-weight: 500;
 }
 
 .hidden {
