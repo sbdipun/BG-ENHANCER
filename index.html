@@ -5,38 +5,75 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Image Enhancement & Background Removal</title>
     <link rel="stylesheet" href="styles.css">
+    <!-- Add Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Add Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
+    <div class="header">
+        <div class="logo">
+            <i class="fas fa-magic"></i>
+            <span>ImageMagic</span>
+        </div>
+    </div>
+
     <div class="container">
-        <h1>Image Enhancement & Background Removal</h1>
+        <div class="hero-section">
+            <h1>Transform Your Images</h1>
+            <p>Enhance quality and remove backgrounds with AI-powered technology</p>
+        </div>
         
         <div class="upload-section">
             <div class="input-group">
-                <input type="file" id="imageInput" accept="image/*" onchange="handleImageUpload(event)">
-                <span class="or-divider">OR</span>
-                <input type="text" id="imageUrl" placeholder="Enter image URL">
+                <div class="file-upload">
+                    <input type="file" id="imageInput" accept="image/*" onchange="handleImageUpload(event)">
+                    <label for="imageInput">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <span>Choose a file</span>
+                    </label>
+                </div>
+                <div class="divider">
+                    <span>OR</span>
+                </div>
+                <div class="url-input">
+                    <input type="text" id="imageUrl" placeholder="Paste image URL here">
+                </div>
             </div>
             <div class="preview">
                 <img id="imagePreview" class="hidden" alt="Upload preview">
             </div>
             <div class="buttons">
-                <button onclick="enhanceImage()">Enhance Image</button>
-                <button onclick="removeBackground()">Remove Background</button>
+                <button onclick="enhanceImage()" class="enhance-btn">
+                    <i class="fas fa-wand-magic-sparkles"></i>
+                    Enhance Image
+                </button>
+                <button onclick="removeBackground()" class="remove-bg-btn">
+                    <i class="fas fa-cut"></i>
+                    Remove Background
+                </button>
             </div>
         </div>
 
         <div class="results-section">
             <div class="result-container">
                 <h3>Original Image</h3>
-                <img id="originalImage" src="" alt="Original image will appear here">
+                <div class="image-wrapper">
+                    <img id="originalImage" src="" alt="Original image will appear here">
+                </div>
             </div>
             <div class="result-container">
                 <h3>Processed Image</h3>
-                <img id="processedImage" src="" alt="Processed image will appear here">
+                <div class="image-wrapper">
+                    <img id="processedImage" src="" alt="Processed image will appear here">
+                </div>
             </div>
         </div>
 
-        <div id="loading" class="loading hidden">Processing...</div>
+        <div id="loading" class="loading hidden">
+            <div class="spinner"></div>
+            <span>Processing your image...</span>
+        </div>
     </div>
     <script src="script.js"></script>
 </body>
