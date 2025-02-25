@@ -35,17 +35,19 @@ async function enhanceImage() {
         let imageUrlToProcess;
         
         if (file) {
-            // If file is selected, first upload it to a temporary hosting service
-            imageUrlToProcess = await uploadImage(file);
+            // Convert file to base64
+            imageUrlToProcess = await getBase64(file);
+            // Set original image
+            document.getElementById('originalImage').src = imageUrlToProcess;
         } else {
             imageUrlToProcess = imageUrl;
+            document.getElementById('originalImage').src = imageUrl;
         }
 
         const response = await fetch(`${ENHANCE_API_URL}?url=${encodeURIComponent(imageUrlToProcess)}`);
         const data = await response.json();
         
         if (data.status === "success") {
-            document.getElementById('originalImage').src = imageUrlToProcess;
             document.getElementById('processedImage').src = data.image;
         } else {
             alert('Failed to enhance image');
@@ -72,10 +74,13 @@ async function removeBackground() {
         let imageUrlToProcess;
         
         if (file) {
-            // If file is selected, first upload it to a temporary hosting service
-            imageUrlToProcess = await uploadImage(file);
+            // Convert file to base64
+            imageUrlToProcess = await getBase64(file);
+            // Set original image
+            document.getElementById('originalImage').src = imageUrlToProcess;
         } else {
             imageUrlToProcess = imageUrl;
+            document.getElementById('originalImage').src = imageUrl;
         }
 
         const formData = {
@@ -94,7 +99,6 @@ async function removeBackground() {
         const data = await response.json();
         
         if (data.result_url) {
-            document.getElementById('originalImage').src = imageUrlToProcess;
             document.getElementById('processedImage').src = data.result_url;
         } else {
             alert('Failed to remove background');
@@ -106,23 +110,14 @@ async function removeBackground() {
     hideLoading();
 }
 
-async function uploadImage(file) {
-    // Using ImgBB API for temporary image hosting
-    const IMGBB_API_KEY = ''; // You need to get an API key from imgbb.com
-    const formData = new FormData();
-    formData.append('image', file);
-
-    const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
-        method: 'POST',
-        body: formData
+// Helper function to convert File to base64
+function getBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = error => reject(error);
     });
-
-    const data = await response.json();
-    if (data.data?.url) {
-        return data.data.url;
-    } else {
-        throw new Error('Failed to upload image');
-    }
 }
 
 function showLoading() {
