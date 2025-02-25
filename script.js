@@ -94,8 +94,35 @@ async function enhanceImage() {
         const imageUrlToProcess = file ? await processImage(file) : imageUrl;
         document.getElementById('originalImage').src = file ? URL.createObjectURL(file) : imageUrl;
 
-        const response = await fetch(`${ENHANCE_API_URL}?url=${encodeURIComponent(imageUrlToProcess)}`);
-        const data = await response.json();
+        // First request to start processing
+        const initialResponse = await fetch(`${ENHANCE_API_URL}?url=${encodeURIComponent(imageUrlToProcess)}`);
+        
+        if (!initialResponse.ok) {
+            throw new Error('Failed to start enhancement process');
+        }
+
+        // Retry function to check processing status
+        const checkResult = async (retries = 10, delay = 2000) => {
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(`${ENHANCE_API_URL}?url=${encodeURIComponent(imageUrlToProcess)}`);
+                    const data = await response.json();
+                    
+                    if (data.status === "success" && data.image) {
+                        return data;
+                    }
+                    
+                    // Wait before next retry
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                } catch (error) {
+                    console.log('Retrying...', error);
+                }
+            }
+            throw new Error('Enhancement timed out');
+        };
+
+        // Wait for the result
+        const data = await checkResult();
         
         if (data.status === "success") {
             document.getElementById('processedImage').src = data.image;
@@ -202,7 +229,9 @@ function showDownloadButton(imageUrl, type) {
 }
 
 function showLoading() {
-    document.getElementById('loading').classList.remove('hidden');
+    const loading = document.getElementById('loading');
+    loading.classList.remove('hidden');
+    loading.querySelector('span').textContent = 'Processing your image... This may take up to 20 seconds';
 }
 
 function hideLoading() {
