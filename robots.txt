@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Sitemap: https://imageglow.netlify.app/sitemap.xml
+
+# Optimize crawling rate
+Crawl-delay: 10 
