@@ -1,1 +1,1 @@
-The file must be placed at the root of your domain (e.g., yourdomain.com/ads.txt)
+google.com, pub-7233146388388681, DIRECT, f08c47fec0942fa0 
