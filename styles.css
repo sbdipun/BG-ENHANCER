@@ -650,4 +650,30 @@ button:hover {
     .terms-content section {
         padding: 1.5rem;
     }
+}
+
+/* Ad Container Styles */
+.ad-container {
+    width: 100%;
+    max-width: 100%;
+    margin: 2rem auto;
+    padding: 1rem;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    overflow: hidden;
+    min-height: 100px;
+}
+
+.ad-container ins {
+    display: block;
+    margin: 0 auto;
+}
+
+/* Responsive adjustments for ads */
+@media (max-width: 768px) {
+    .ad-container {
+        margin: 1.5rem auto;
+        padding: 0.75rem;
+    }
 } 
