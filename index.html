@@ -3,80 +3,140 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Image Enhancement & Background Removal</title>
-    <link rel="stylesheet" href="styles.css">
-    <!-- Add Google Fonts -->
+    <meta name="description" content="Free online tool to enhance images and remove backgrounds instantly. Professional-grade image processing with AI technology.">
+    <meta name="keywords" content="image enhancer, background remover, image processing, AI image enhancement, photo editor">
+    <meta name="author" content="ImageMagic">
+    <meta name="robots" content="index, follow">
+    
+    <!-- Open Graph / Social Media Meta Tags -->
+    <meta property="og:title" content="ImageMagic - AI Image Enhancement & Background Removal">
+    <meta property="og:description" content="Transform your images instantly with our AI-powered image enhancement and background removal tools.">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="path-to-your-social-preview-image.jpg">
+    <meta property="og:url" content="your-website-url">
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="ImageMagic - AI Image Enhancement & Background Removal">
+    <meta name="twitter:description" content="Transform your images instantly with our AI-powered tools">
+    <meta name="twitter:image" content="path-to-your-social-preview-image.jpg">
+    
+    <title>ImageMagic - AI Image Enhancement & Background Removal Tool</title>
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="your-website-url">
+    
+    <!-- Preconnect to external domains -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    
+    <!-- Your existing CSS and font links -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
-    <!-- Add Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+
+    <!-- Add this just before closing </head> tag -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "ImageMagic",
+        "description": "AI-powered image enhancement and background removal tool",
+        "applicationCategory": "Image Processing Tool",
+        "operatingSystem": "Any",
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+        },
+        "featureList": [
+            "Image Enhancement",
+            "Background Removal",
+            "Instant Processing",
+            "AI Technology"
+        ]
+    }
+    </script>
 </head>
 <body>
-    <div class="header">
+    <header class="header">
         <div class="logo">
-            <i class="fas fa-magic"></i>
+            <i class="fas fa-magic" aria-hidden="true"></i>
             <span>ImageMagic</span>
         </div>
-    </div>
+    </header>
 
-    <div class="container">
-        <div class="hero-section">
-            <h1>Transform Your Images</h1>
-            <p>Enhance quality and remove backgrounds with AI-powered technology</p>
-        </div>
+    <main class="container">
+        <section class="hero-section">
+            <h1>Transform Your Images with AI</h1>
+            <p>Enhance image quality and remove backgrounds instantly using our advanced AI technology</p>
+        </section>
         
-        <div class="upload-section">
+        <section class="upload-section" aria-label="Image Upload">
             <div class="input-group">
                 <div class="file-upload">
-                    <input type="file" id="imageInput" accept="image/*" onchange="handleImageUpload(event)">
+                    <input type="file" id="imageInput" accept="image/*" onchange="handleImageUpload(event)" aria-label="Choose image file">
                     <label for="imageInput">
-                        <i class="fas fa-cloud-upload-alt"></i>
+                        <i class="fas fa-cloud-upload-alt" aria-hidden="true"></i>
                         <span>Choose a file</span>
                     </label>
                 </div>
-                <div class="divider">
+                <div class="divider" role="separator">
                     <span>OR</span>
                 </div>
                 <div class="url-input">
-                    <input type="text" id="imageUrl" placeholder="Paste image URL here">
+                    <input type="text" id="imageUrl" placeholder="Paste image URL here" aria-label="Image URL input">
                 </div>
             </div>
-            <div class="preview">
-                <img id="imagePreview" class="hidden" alt="Upload preview">
+            <div class="preview" aria-live="polite">
+                <img id="imagePreview" class="hidden" alt="Image preview" role="img">
             </div>
             <div class="buttons">
-                <button onclick="enhanceImage()" class="enhance-btn">
-                    <i class="fas fa-wand-magic-sparkles"></i>
+                <button onclick="enhanceImage()" class="enhance-btn" aria-label="Enhance image">
+                    <i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i>
                     Enhance Image
                 </button>
-                <button onclick="removeBackground()" class="remove-bg-btn">
-                    <i class="fas fa-cut"></i>
+                <button onclick="removeBackground()" class="remove-bg-btn" aria-label="Remove background">
+                    <i class="fas fa-cut" aria-hidden="true"></i>
                     Remove Background
                 </button>
             </div>
-        </div>
+        </section>
 
-        <div class="results-section">
+        <section class="results-section" aria-label="Results">
             <div class="result-container">
                 <h3>Original Image</h3>
                 <div class="image-wrapper">
-                    <img id="originalImage" src="" alt="Original image will appear here">
+                    <img id="originalImage" src="" alt="Original image" role="img">
                 </div>
             </div>
             <div class="result-container">
                 <h3>Processed Image</h3>
                 <div class="image-wrapper">
-                    <img id="processedImage" src="" alt="Processed image will appear here">
+                    <img id="processedImage" src="" alt="Processed image" role="img">
                 </div>
             </div>
-        </div>
+        </section>
+    </main>
 
-        <div id="loading" class="loading hidden">
-            <div class="progress-container">
-                <div class="progress-bar">
-                    <div class="progress-fill"></div>
-                </div>
-                <span class="progress-text">Processing your image...</span>
+    <footer class="footer">
+        <div class="container">
+            <nav class="footer-links">
+                <a href="/about" title="About ImageMagic">About</a>
+                <a href="/privacy" title="Privacy Policy">Privacy Policy</a>
+                <a href="/terms" title="Terms of Service">Terms of Service</a>
+            </nav>
+            <p>&copy; 2024 ImageMagic. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <div id="loading" class="loading hidden" role="alert" aria-live="polite">
+        <div class="progress-container">
+            <div class="progress-bar">
+                <div class="progress-fill"></div>
             </div>
+            <span class="progress-text">Processing your image...</span>
         </div>
     </div>
     <script src="script.js"></script>
