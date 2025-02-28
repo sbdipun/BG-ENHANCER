@@ -119,63 +119,24 @@ async function enhanceImage() {
 
         updateProgress(20, 'Starting enhancement process...');
 
-        const approaches = [
-            // Direct approach
-            async () => {
-                const response = await fetch(`${ENHANCE_API_URL}?url=${encodeURIComponent(imageUrlToProcess)}`);
-                return response.json();
-            },
-            // With headers
-            async () => {
-                const response = await fetch(`${ENHANCE_API_URL}?url=${encodeURIComponent(imageUrlToProcess)}`, {
-                    headers: {
-                        'Accept': 'application/json',
-                        'Cache-Control': 'no-cache'
-                    }
-                });
-                return response.json();
-            },
-            // Through proxy
-            async () => {
-                const proxyUrl = 'https://api.allorigins.win/raw?url=';
-                const response = await fetch(proxyUrl + encodeURIComponent(`${ENHANCE_API_URL}?url=${encodeURIComponent(imageUrlToProcess)}`));
-                return response.json();
-            }
-        ];
-
-        let retries = 0;
-        const maxRetries = 30;
-        let lastError = null;
-
-        while (retries < maxRetries) {
-            // Calculate progress percentage (20% to 90%)
-            const progressPercent = 20 + (retries / maxRetries * 70);
-            updateProgress(progressPercent, 'Enhancing image...');
-
-            // Try each approach
-            for (const approach of approaches) {
-                try {
-                    const data = await approach();
-                    
-                    if (data.status === "success" && data.image) {
-                        updateProgress(100, 'Enhancement complete!');
-                        document.getElementById('processedImage').src = data.image;
-                        showDownloadButton(data.image, 'enhanced');
-                        setTimeout(hideLoading, 500); // Show 100% briefly
-                        return;
-                    }
-                } catch (error) {
-                    lastError = error;
-                    console.log('Approach failed:', error);
-                    continue;
-                }
-            }
-
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            retries++;
+        // Direct request to the new API
+        const response = await fetch(`${ENHANCE_API_URL}?url=${encodeURIComponent(imageUrlToProcess)}`);
+        if (!response.ok) {
+            throw new Error('Enhancement request failed');
         }
         
-        throw new Error(lastError?.message || 'Enhancement process timed out');
+        const data = await response.json();
+        
+        if (data.status === "success" && data.image) {
+            updateProgress(100, 'Enhancement complete!');
+            document.getElementById('processedImage').src = data.image;
+            showDownloadButton(data.image, 'enhanced');
+            setTimeout(hideLoading, 500);
+            return;
+        } else {
+            throw new Error('Invalid response from enhancement service');
+        }
+
     } catch (error) {
         console.error('Error:', error);
         updateProgress(100, `Error: ${error.message}`);
