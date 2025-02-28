@@ -156,27 +156,51 @@ async function enhanceImage() {
         try {
             const cleanUrl = imageUrlToProcess.trim();
             const encodedUrl = encodeURIComponent(cleanUrl);
-            const targetUrl = `${ENHANCE_API_URL}?url=${encodedUrl}`;
             
-            console.log('Processing URL:', targetUrl);
-            
-            let data;
-            try {
-                // Try fetch first
-                const response = await fetch(targetUrl).catch(() => null);
-                if (response && response.ok) {
-                    data = await response.json();
-                } else {
-                    // If fetch fails, try XMLHttpRequest
-                    console.log('Fetch failed, trying XMLHttpRequest...');
-                    data = await makeXHRRequest(targetUrl);
-                }
-            } catch (networkError) {
-                console.error('Network error:', networkError);
-                throw new Error('Failed to connect to enhancement service');
-            }
+            // Try different proxy services
+            const proxyUrls = [
+                `https://api.codetabs.com/v1/proxy?quest=${ENHANCE_API_URL}?url=${encodedUrl}`,
+                `https://proxy.cors.sh/${ENHANCE_API_URL}?url=${encodedUrl}`,
+                `${ENHANCE_API_URL}?url=${encodedUrl}`
+            ];
 
-            console.log('Response data:', data);
+            let lastError = null;
+            let data = null;
+
+            for (const url of proxyUrls) {
+                try {
+                    console.log('Trying URL:', url);
+                    const response = await fetch(url, {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/json',
+                            'x-requested-with': 'XMLHttpRequest'
+                        }
+                    });
+
+                    if (!response.ok) {
+                        console.log(`Failed with status: ${response.status}`);
+                        continue;
+                    }
+
+                    const responseText = await response.text();
+                    console.log('Response text:', responseText);
+                    
+                    try {
+                        data = JSON.parse(responseText);
+                        if (data.status === "success" && data.image) {
+                            break; // Successfully got valid data
+                        }
+                    } catch (e) {
+                        console.log('Parse failed, trying next URL');
+                        continue;
+                    }
+                } catch (error) {
+                    console.log('Request failed:', error);
+                    lastError = error;
+                    continue;
+                }
+            }
 
             if (data && data.status === "success" && data.image) {
                 updateProgress(100, 'Enhancement complete!');
@@ -184,8 +208,7 @@ async function enhanceImage() {
                 showDownloadButton(data.image, 'enhanced');
                 setTimeout(hideLoading, 500);
             } else {
-                console.error('Invalid response data:', data);
-                throw new Error('Invalid response from enhancement service');
+                throw new Error(lastError?.message || 'Failed to enhance image');
             }
 
         } catch (error) {
