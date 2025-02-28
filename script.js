@@ -93,6 +93,35 @@ function updateProgress(percent, message) {
     }
 }
 
+// Add new helper function for XMLHttpRequest
+function makeXHRRequest(url) {
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', url, true);
+        xhr.setRequestHeader('Accept', 'application/json');
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        
+        xhr.onload = function() {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                    const data = JSON.parse(xhr.responseText);
+                    resolve(data);
+                } catch (e) {
+                    reject(new Error('Failed to parse response'));
+                }
+            } else {
+                reject(new Error('Request failed with status ' + xhr.status));
+            }
+        };
+        
+        xhr.onerror = function() {
+            reject(new Error('Network request failed'));
+        };
+        
+        xhr.send();
+    });
+}
+
 async function enhanceImage() {
     const imageUrl = document.getElementById('imageUrl').value;
     const fileInput = document.getElementById('imageInput');
@@ -125,45 +154,31 @@ async function enhanceImage() {
         updateProgress(20, 'Starting enhancement process...');
 
         try {
-            // Clean and encode the URL properly
             const cleanUrl = imageUrlToProcess.trim();
             const encodedUrl = encodeURIComponent(cleanUrl);
             const targetUrl = `${ENHANCE_API_URL}?url=${encodedUrl}`;
             
-            console.log('Clean URL:', cleanUrl);
-            console.log('Encoded URL:', encodedUrl);
-            console.log('Target URL:', targetUrl);
-
-            const response = await fetch(targetUrl, {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*'
-                }
-            });
-
-            // Log response details for debugging
-            console.log('Response status:', response.status);
-            console.log('Response headers:', Object.fromEntries(response.headers));
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('Error response:', errorText);
-                throw new Error(`Enhancement request failed: ${response.status}`);
-            }
-
+            console.log('Processing URL:', targetUrl);
+            
             let data;
             try {
-                const responseText = await response.text();
-                console.log('Raw response:', responseText);
-                data = JSON.parse(responseText);
-            } catch (parseError) {
-                console.error('Parse error:', parseError);
-                throw new Error('Failed to parse response');
+                // Try fetch first
+                const response = await fetch(targetUrl).catch(() => null);
+                if (response && response.ok) {
+                    data = await response.json();
+                } else {
+                    // If fetch fails, try XMLHttpRequest
+                    console.log('Fetch failed, trying XMLHttpRequest...');
+                    data = await makeXHRRequest(targetUrl);
+                }
+            } catch (networkError) {
+                console.error('Network error:', networkError);
+                throw new Error('Failed to connect to enhancement service');
             }
 
-            if (data.status === "success" && data.image) {
+            console.log('Response data:', data);
+
+            if (data && data.status === "success" && data.image) {
                 updateProgress(100, 'Enhancement complete!');
                 document.getElementById('processedImage').src = data.image;
                 showDownloadButton(data.image, 'enhanced');
