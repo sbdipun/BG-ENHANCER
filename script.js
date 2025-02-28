@@ -111,7 +111,7 @@ async function enhanceImage() {
             try {
                 updateProgress(10, 'Uploading image...');
                 imageUrlToProcess = await uploadToHost(file);
-                console.log('Uploaded image URL:', imageUrlToProcess); // Debug log
+                console.log('Uploaded image URL:', imageUrlToProcess);
                 document.getElementById('originalImage').src = URL.createObjectURL(file);
             } catch (error) {
                 console.error('Upload error:', error);
@@ -125,27 +125,43 @@ async function enhanceImage() {
         updateProgress(20, 'Starting enhancement process...');
 
         try {
-            const targetUrl = `${ENHANCE_API_URL}?url=${encodeURIComponent(imageUrlToProcess)}`;
-            console.log('Requesting enhancement URL:', targetUrl); // Debug log
+            // Clean and encode the URL properly
+            const cleanUrl = imageUrlToProcess.trim();
+            const encodedUrl = encodeURIComponent(cleanUrl);
+            const targetUrl = `${ENHANCE_API_URL}?url=${encodedUrl}`;
             
+            console.log('Clean URL:', cleanUrl);
+            console.log('Encoded URL:', encodedUrl);
+            console.log('Target URL:', targetUrl);
+
             const response = await fetch(targetUrl, {
                 method: 'GET',
                 headers: {
                     'Accept': 'application/json',
-                    'Origin': window.location.origin,
-                    'Referer': window.location.href
-                },
-                mode: 'cors',
-                credentials: 'omit'
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                }
             });
 
+            // Log response details for debugging
+            console.log('Response status:', response.status);
+            console.log('Response headers:', Object.fromEntries(response.headers));
+
             if (!response.ok) {
-                console.error('Enhancement response status:', response.status);
-                throw new Error(`Enhancement request failed with status: ${response.status}`);
+                const errorText = await response.text();
+                console.error('Error response:', errorText);
+                throw new Error(`Enhancement request failed: ${response.status}`);
             }
 
-            const data = await response.json();
-            console.log('Enhancement response:', data); // Debug log
+            let data;
+            try {
+                const responseText = await response.text();
+                console.log('Raw response:', responseText);
+                data = JSON.parse(responseText);
+            } catch (parseError) {
+                console.error('Parse error:', parseError);
+                throw new Error('Failed to parse response');
+            }
 
             if (data.status === "success" && data.image) {
                 updateProgress(100, 'Enhancement complete!');
@@ -153,7 +169,7 @@ async function enhanceImage() {
                 showDownloadButton(data.image, 'enhanced');
                 setTimeout(hideLoading, 500);
             } else {
-                console.error('Invalid enhancement response:', data);
+                console.error('Invalid response data:', data);
                 throw new Error('Invalid response from enhancement service');
             }
 
