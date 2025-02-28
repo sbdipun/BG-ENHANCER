@@ -18,8 +18,11 @@ async function uploadToHost(file) {
         }
         
         const data = await response.json();
-        if (data.data?.url) {
-            return data.data.url;
+        console.log('ImgBB Response:', data); // Debug log
+        
+        // Check for both url and display_url
+        if (data.data?.url || data.data?.display_url) {
+            return data.data.display_url || data.data.url;
         } else {
             throw new Error('Invalid response from image host');
         }
@@ -108,8 +111,10 @@ async function enhanceImage() {
             try {
                 updateProgress(10, 'Uploading image...');
                 imageUrlToProcess = await uploadToHost(file);
+                console.log('Uploaded image URL:', imageUrlToProcess); // Debug log
                 document.getElementById('originalImage').src = URL.createObjectURL(file);
             } catch (error) {
+                console.error('Upload error:', error);
                 throw new Error('Failed to upload image');
             }
         } else {
@@ -119,51 +124,42 @@ async function enhanceImage() {
 
         updateProgress(20, 'Starting enhancement process...');
 
-        // Using multiple CORS proxies as fallbacks
-        const corsProxies = [
-            'https://corsproxy.io/?',
-            'https://api.allorigins.win/raw?url=',
-            'https://cors-anywhere.herokuapp.com/'
-        ];
+        try {
+            const targetUrl = `${ENHANCE_API_URL}?url=${encodeURIComponent(imageUrlToProcess)}`;
+            console.log('Requesting enhancement URL:', targetUrl); // Debug log
+            
+            const response = await fetch(targetUrl, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'Origin': window.location.origin,
+                    'Referer': window.location.href
+                },
+                mode: 'cors',
+                credentials: 'omit'
+            });
 
-        let success = false;
-        let lastError = null;
-
-        for (const proxy of corsProxies) {
-            try {
-                updateProgress(40, 'Connecting to enhancement service...');
-                const targetUrl = `${ENHANCE_API_URL}?url=${encodeURIComponent(imageUrlToProcess)}`;
-                const response = await fetch(proxy + encodeURIComponent(targetUrl), {
-                    headers: {
-                        'Accept': 'application/json'
-                    }
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const data = await response.json();
-
-                if (data.status === "success" && data.image) {
-                    updateProgress(100, 'Enhancement complete!');
-                    document.getElementById('processedImage').src = data.image;
-                    showDownloadButton(data.image, 'enhanced');
-                    setTimeout(hideLoading, 500);
-                    success = true;
-                    break;
-                } else {
-                    throw new Error('Invalid response structure from enhancement service');
-                }
-            } catch (error) {
-                console.error('Proxy attempt failed:', error);
-                lastError = error;
-                continue;
+            if (!response.ok) {
+                console.error('Enhancement response status:', response.status);
+                throw new Error(`Enhancement request failed with status: ${response.status}`);
             }
-        }
 
-        if (!success) {
-            throw new Error(lastError?.message || 'All enhancement attempts failed');
+            const data = await response.json();
+            console.log('Enhancement response:', data); // Debug log
+
+            if (data.status === "success" && data.image) {
+                updateProgress(100, 'Enhancement complete!');
+                document.getElementById('processedImage').src = data.image;
+                showDownloadButton(data.image, 'enhanced');
+                setTimeout(hideLoading, 500);
+            } else {
+                console.error('Invalid enhancement response:', data);
+                throw new Error('Invalid response from enhancement service');
+            }
+
+        } catch (error) {
+            console.error('Enhancement error:', error);
+            throw error;
         }
 
     } catch (error) {
