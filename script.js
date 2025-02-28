@@ -157,8 +157,8 @@ async function enhanceImage() {
             const cleanUrl = imageUrlToProcess.trim();
             const encodedUrl = encodeURIComponent(cleanUrl);
             
-            // Use a reliable proxy service
-            const proxyUrl = `https://cors-anywhere.herokuapp.com/${ENHANCE_API_URL}?url=${encodedUrl}`;
+            // Try a different proxy service
+            const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(`${ENHANCE_API_URL}?url=${encodedUrl}`)}`;
 
             console.log('Trying proxy URL:', proxyUrl);
             const response = await fetch(proxyUrl, {
