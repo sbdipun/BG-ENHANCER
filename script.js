@@ -153,51 +153,66 @@ async function enhanceImage() {
 
         updateProgress(20, 'Starting enhancement process...');
 
-        try {
-            const cleanUrl = imageUrlToProcess.trim();
-            const encodedUrl = encodeURIComponent(cleanUrl);
-            
-            // Try a different proxy service
-            const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(`${ENHANCE_API_URL}?url=${encodedUrl}`)}`;
+        const cleanUrl = imageUrlToProcess.trim();
+        const encodedUrl = encodeURIComponent(cleanUrl);
+        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(`${ENHANCE_API_URL}?url=${encodedUrl}`)}`;
 
-            console.log('Trying proxy URL:', proxyUrl);
-            const response = await fetch(proxyUrl, {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json',
-                    'x-requested-with': 'XMLHttpRequest'
-                }
-            });
+        let attempts = 0;
+        const maxAttempts = 3;
+        let success = false;
+        let lastError = null;
 
-            if (!response.ok) {
-                console.log(`Failed with status: ${response.status}`);
-                throw new Error(`Enhancement request failed: ${response.status}`);
-            }
-
-            const responseText = await response.text();
-            console.log('Response text:', responseText);
-            
-            let data;
+        while (attempts < maxAttempts && !success) {
             try {
-                data = JSON.parse(responseText);
-            } catch (e) {
-                console.log('Parse failed');
-                throw new Error('Failed to parse response');
-            }
+                console.log(`Attempt ${attempts + 1}: Trying proxy URL:`, proxyUrl);
+                const response = await fetch(proxyUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'x-requested-with': 'XMLHttpRequest'
+                    }
+                });
 
-            if (data.status === "success" && data.image) {
-                updateProgress(100, 'Enhancement complete!');
-                document.getElementById('processedImage').src = data.image;
-                showDownloadButton(data.image, 'enhanced');
-                setTimeout(hideLoading, 500);
-            } else {
-                console.error('Invalid response data:', data);
-                throw new Error('Invalid response from enhancement service');
-            }
+                if (!response.ok) {
+                    console.log(`Failed with status: ${response.status}`);
+                    throw new Error(`Enhancement request failed: ${response.status}`);
+                }
 
-        } catch (error) {
-            console.error('Enhancement error:', error);
-            throw error;
+                const responseText = await response.text();
+                console.log('Response text:', responseText);
+                
+                let data;
+                try {
+                    data = JSON.parse(responseText);
+                } catch (e) {
+                    console.log('Parse failed');
+                    throw new Error('Failed to parse response');
+                }
+
+                if (data.status === "success" && data.image) {
+                    updateProgress(100, 'Enhancement complete!');
+                    document.getElementById('processedImage').src = data.image;
+                    showDownloadButton(data.image, 'enhanced');
+                    setTimeout(hideLoading, 500);
+                    success = true;
+                } else {
+                    console.error('Invalid response data:', data);
+                    throw new Error('Invalid response from enhancement service');
+                }
+
+            } catch (error) {
+                console.error('Enhancement error:', error);
+                lastError = error;
+                attempts++;
+                if (attempts < maxAttempts) {
+                    console.log('Retrying...');
+                    await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds before retrying
+                }
+            }
+        }
+
+        if (!success) {
+            throw new Error(lastError?.message || 'Failed to enhance image after multiple attempts');
         }
 
     } catch (error) {
