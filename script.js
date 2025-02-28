@@ -119,52 +119,41 @@ async function enhanceImage() {
 
         updateProgress(20, 'Starting enhancement process...');
 
-        // Try multiple approaches to handle CORS
-        const approaches = [
-            // Approach 1: Direct request
-            async () => {
-                return await fetch(`${ENHANCE_API_URL}?url=${encodeURIComponent(imageUrlToProcess)}`);
-            },
-            // Approach 2: With no-cors mode
-            async () => {
-                return await fetch(`${ENHANCE_API_URL}?url=${encodeURIComponent(imageUrlToProcess)}`, {
-                    mode: 'no-cors'
-                });
-            },
-            // Approach 3: Using a CORS proxy
-            async () => {
-                const corsProxy = 'https://api.allorigins.win/raw?url=';
-                return await fetch(corsProxy + encodeURIComponent(`${ENHANCE_API_URL}?url=${encodeURIComponent(imageUrlToProcess)}`));
+        try {
+            // Simple direct request with debugging
+            const response = await fetch(`${ENHANCE_API_URL}?url=${encodeURIComponent(imageUrlToProcess)}`);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
-        ];
-
-        let lastError = null;
-        for (const approach of approaches) {
+            
+            // Debug: Log the raw response
+            const responseText = await response.text();
+            console.log('Raw API Response:', responseText);
+            
+            // Try to parse the response as JSON
+            let data;
             try {
-                updateProgress(40, 'Connecting to enhancement service...');
-                const response = await approach();
-                
-                if (!response.ok && response.status !== 0) { // status 0 is for no-cors mode
-                    continue;
-                }
-
-                const data = await response.json();
-                
-                if (data.status === "success" && data.image) {
-                    updateProgress(100, 'Enhancement complete!');
-                    document.getElementById('processedImage').src = data.image;
-                    showDownloadButton(data.image, 'enhanced');
-                    setTimeout(hideLoading, 500);
-                    return;
-                }
-            } catch (error) {
-                console.error('Approach failed:', error);
-                lastError = error;
-                continue;
+                data = JSON.parse(responseText);
+            } catch (parseError) {
+                console.error('JSON Parse Error:', parseError);
+                throw new Error('Invalid response format from server');
             }
-        }
 
-        throw new Error(lastError?.message || 'Failed to connect to enhancement service');
+            if (data.status === "success" && data.image) {
+                updateProgress(100, 'Enhancement complete!');
+                document.getElementById('processedImage').src = data.image;
+                showDownloadButton(data.image, 'enhanced');
+                setTimeout(hideLoading, 500);
+                return;
+            } else {
+                console.error('Invalid response structure:', data);
+                throw new Error('Invalid response structure from enhancement service');
+            }
+        } catch (fetchError) {
+            console.error('Fetch Error:', fetchError);
+            throw new Error(`Enhancement service error: ${fetchError.message}`);
+        }
 
     } catch (error) {
         console.error('Error:', error);
