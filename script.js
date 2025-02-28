@@ -119,40 +119,51 @@ async function enhanceImage() {
 
         updateProgress(20, 'Starting enhancement process...');
 
-        try {
-            // Simple direct request with debugging
-            const response = await fetch(`${ENHANCE_API_URL}?url=${encodeURIComponent(imageUrlToProcess)}`);
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            // Debug: Log the raw response
-            const responseText = await response.text();
-            console.log('Raw API Response:', responseText);
-            
-            // Try to parse the response as JSON
-            let data;
-            try {
-                data = JSON.parse(responseText);
-            } catch (parseError) {
-                console.error('JSON Parse Error:', parseError);
-                throw new Error('Invalid response format from server');
-            }
+        // Using multiple CORS proxies as fallbacks
+        const corsProxies = [
+            'https://corsproxy.io/?',
+            'https://api.allorigins.win/raw?url=',
+            'https://cors-anywhere.herokuapp.com/'
+        ];
 
-            if (data.status === "success" && data.image) {
-                updateProgress(100, 'Enhancement complete!');
-                document.getElementById('processedImage').src = data.image;
-                showDownloadButton(data.image, 'enhanced');
-                setTimeout(hideLoading, 500);
-                return;
-            } else {
-                console.error('Invalid response structure:', data);
-                throw new Error('Invalid response structure from enhancement service');
+        let success = false;
+        let lastError = null;
+
+        for (const proxy of corsProxies) {
+            try {
+                updateProgress(40, 'Connecting to enhancement service...');
+                const targetUrl = `${ENHANCE_API_URL}?url=${encodeURIComponent(imageUrlToProcess)}`;
+                const response = await fetch(proxy + encodeURIComponent(targetUrl), {
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (data.status === "success" && data.image) {
+                    updateProgress(100, 'Enhancement complete!');
+                    document.getElementById('processedImage').src = data.image;
+                    showDownloadButton(data.image, 'enhanced');
+                    setTimeout(hideLoading, 500);
+                    success = true;
+                    break;
+                } else {
+                    throw new Error('Invalid response structure from enhancement service');
+                }
+            } catch (error) {
+                console.error('Proxy attempt failed:', error);
+                lastError = error;
+                continue;
             }
-        } catch (fetchError) {
-            console.error('Fetch Error:', fetchError);
-            throw new Error(`Enhancement service error: ${fetchError.message}`);
+        }
+
+        if (!success) {
+            throw new Error(lastError?.message || 'All enhancement attempts failed');
         }
 
     } catch (error) {
