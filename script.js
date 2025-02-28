@@ -1,6 +1,6 @@
 const API_TOKEN = "c818f0e17c8e4b2597a5db5b2a5cf735";
 const BGR_API_URL = "https://engine.prod.bria-api.com/v1/background/remove";
-const ENHANCE_API_URL = "https://daddy-img-enc.daddycool.workers.dev";
+const ENHANCE_API_URL = "https://planet-accessible-dibble.glitch.me/api/enhancer/";
 const IMGBB_API_KEY = "384b8ef7f634a0702aaa7180910f1826"; // Get from https://api.imgbb.com/
 
 async function uploadToHost(file) {
