@@ -119,13 +119,28 @@ async function enhanceImage() {
 
         updateProgress(20, 'Starting enhancement process...');
 
-        // Direct request to the new API
-        const response = await fetch(`${ENHANCE_API_URL}?url=${encodeURIComponent(imageUrlToProcess)}`);
+        // Add headers and mode for CORS
+        const response = await fetch(`${ENHANCE_API_URL}?url=${encodeURIComponent(imageUrlToProcess)}`, {
+            method: 'GET',
+            mode: 'cors',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
+        }).catch(error => {
+            console.error('Fetch error:', error);
+            throw new Error('Network error while connecting to enhancement service');
+        });
+
         if (!response.ok) {
-            throw new Error('Enhancement request failed');
+            console.error('Response status:', response.status);
+            throw new Error(`Enhancement request failed with status: ${response.status}`);
         }
         
-        const data = await response.json();
+        const data = await response.json().catch(error => {
+            console.error('JSON parse error:', error);
+            throw new Error('Failed to parse enhancement service response');
+        });
         
         if (data.status === "success" && data.image) {
             updateProgress(100, 'Enhancement complete!');
@@ -134,6 +149,7 @@ async function enhanceImage() {
             setTimeout(hideLoading, 500);
             return;
         } else {
+            console.error('Invalid response:', data);
             throw new Error('Invalid response from enhancement service');
         }
 
